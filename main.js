@@ -1,127 +1,98 @@
 const $btnKick = document.getElementById('btn-kick');
+const $logs = document.getElementById('logs');
 
-// Додаємо другу кнопку для сильної атаки
+// створюємо другу кнопку
 const $btnStrong = document.createElement('button');
 $btnStrong.innerText = 'Thunder Strike';
 $btnStrong.classList.add('button');
 document.querySelector('.control').appendChild($btnStrong);
 
-// === Базовий конструктор для будь-якого персонажа ===
+// === Функція створення покемона ===
 function createPokemon({ name, defaultHP, elHP, elProgressbar }) {
-  return {
-    name,
-    defaultHP,
-    damageHP: defaultHP,
-    elHP,
-    elProgressbar,
+  let damageHP = defaultHP;
 
-    renderHP() {
-      this.elHP.innerText = this.damageHP + '/' + this.defaultHP;
-      this.elProgressbar.style.width = this.damageHP + '%';
+  const renderHP = () => {
+    elHP.innerText = `${damageHP} / ${defaultHP}`;
+    elProgressbar.style.width = `${damageHP}%`;
+    elProgressbar.style.backgroundColor =
+      damageHP < defaultHP * 0.3 ? 'red' :
+      damageHP < defaultHP * 0.6 ? 'yellow' : 'lime';
+  };
 
-      if (this.damageHP < this.defaultHP * 0.3) {
-        this.elProgressbar.style.backgroundColor = 'red';
-      } else if (this.damageHP < this.defaultHP * 0.6) {
-        this.elProgressbar.style.backgroundColor = 'yellow';
-      } else {
-        this.elProgressbar.style.backgroundColor = 'lime';
-      }
-    },
+  const changeHP = (count, attacker) => {
+    const prevHP = damageHP;
+    damageHP = Math.max(damageHP - count, 0);
+    renderHP();
 
-    changeHP(count) {
-      this.damageHP -= count;
-      if (this.damageHP <= 0) {
-        this.damageHP = 0;
-        alert('Бідний ' + this.name + ' програв бій!');
-        this.disableButtons?.();
-      }
-      this.renderHP();
-    },
+    const logText = generateLog(attacker, name, count, damageHP);
+    addLog(logText);
 
-    disableButtons() {
-      $btnKick.disabled = true;
-      $btnStrong.disabled = true;
+    if (damageHP === 0) {
+      addLog(`💀 ${name} вибув із бою!`);
+      disableButtons();
     }
   };
+
+  const disableButtons = () => {
+    $btnKick.disabled = true;
+    $btnStrong.disabled = true;
+  };
+
+  return { name, renderHP, changeHP, disableButtons };
 }
 
-// === Герой ===
+// === Герой і вороги ===
 const character = createPokemon({
   name: 'Pikachu',
   defaultHP: 100,
   elHP: document.getElementById('health-character'),
-  elProgressbar: document.getElementById('progressbar-character')
+  elProgressbar: document.getElementById('progressbar-character'),
 });
 
-// === Супротивники ===
 const enemy1 = createPokemon({
   name: 'Charmander',
   defaultHP: 100,
   elHP: document.getElementById('health-enemy'),
-  elProgressbar: document.getElementById('progressbar-enemy')
+  elProgressbar: document.getElementById('progressbar-enemy'),
 });
 
-const enemy2 = createPokemon({
-  name: 'Bulbasaur',
-  defaultHP: 100,
-  elHP: (() => {
-    const el = document.createElement('span');
-    el.classList.add('text');
-    return el;
-  })(),
-  elProgressbar: (() => {
-    const el = document.createElement('div');
-    el.classList.add('health');
-    el.style.width = '100%';
-    return el;
-  })()
-});
+// === Логіка ===
+const random = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 
-// Додаємо Bulbasaur на сторінку
-const enemyDiv = document.createElement('div');
-enemyDiv.classList.add('pokemon', 'enemy');
-enemyDiv.innerHTML = `
-    <span class="lvl">Lv. 1</span>
-    <img src="https://i.pinimg.com/736x/9e/c0/2e/9ec02e24d669583868549b8ac67c6423.jpg" class="sprite">
-    <div class="details">
-        <h2 class="name">${enemy2.name}</h2>
-        <div class="hp">
-            <div class="bar"></div>
-        </div>
-    </div>
-`;
-enemyDiv.querySelector('.bar').appendChild(enemy2.elProgressbar);
-enemyDiv.querySelector('.hp').appendChild(enemy2.elHP);
-document.querySelector('.playground').appendChild(enemyDiv);
+function generateLog(firstPerson, secondPerson, damage, remainingHP) {
+  const text = logs[random(0, logs.length - 1)]
+    .replace('[ПЕРСОНАЖ №1]', firstPerson)
+    .replace('[ПЕРСОНАЖ №2]', secondPerson);
 
-const enemies = [enemy1, enemy2];
+  return `🌀 ${text}<br>💥 Втрата: ${damage} HP | ❤️ Залишилось: ${remainingHP} HP`;
+}
 
-// === Службові функції ===
-function random(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+function addLog(text) {
+  const p = document.createElement('p');
+  p.innerHTML = text;
+  p.style.borderBottom = '1px solid #ccc';
+  p.style.padding = '5px';
+  p.style.margin = '5px 0';
+  // новий лог зверху
+  $logs.prepend(p);
 }
 
 function init() {
   character.renderHP();
-  enemies.forEach(e => e.renderHP());
+  enemy1.renderHP();
 }
 
-// === Атака ===
 function playerAttack(maxDamage) {
-  // Вибір випадкового супротивника
-  const target = enemies[random(0, enemies.length - 1)];
-  target.changeHP(random(1, maxDamage));
+  const damage = random(10, maxDamage);
+  enemy1.changeHP(damage, character.name);
 
-  // Хід суперників
+  // Відповідь ворога
   setTimeout(() => {
-    character.changeHP(random(5, 25));
-    enemies.forEach(enemy => {
-      enemy.changeHP(random(1, 15));
-    });
-  }, 500);
+    const enemyDamage = random(5, 20);
+    character.changeHP(enemyDamage, enemy1.name);
+  }, 700);
 }
 
-// === Події кнопок ===
 $btnKick.addEventListener('click', () => playerAttack(20));
 $btnStrong.addEventListener('click', () => playerAttack(35));
 
