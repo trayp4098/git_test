@@ -1,12 +1,5 @@
 // battle.js
-import { Pokemon } from './pokemon.js';
 import { generateLog } from './log.js';
-
-const $btnKick = document.getElementById('btn-kick');
-const $btnStrong = document.createElement('button');
-$btnStrong.innerText = 'Thunder Strike';
-$btnStrong.classList.add('button');
-document.querySelector('.control').appendChild($btnStrong);
 
 const $logs = document.getElementById('logs');
 
@@ -23,60 +16,44 @@ function random(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-// Створюємо героїв
-const character = new Pokemon({
-    name: 'Pikachu',
-    defaultHP: 100,
-    elHP: document.getElementById('health-character'),
-    elProgressbar: document.getElementById('progressbar-character')
-});
+export function playerAttack(maxDamage, minDamage, player1, player2) {
+    if (player2.isDead() || player1.isDead()) return;
 
-const enemy = new Pokemon({
-    name: 'Charmander',
-    defaultHP: 100,
-    elHP: document.getElementById('health-enemy'),
-    elProgressbar: document.getElementById('progressbar-enemy')
-});
+    const damage = random(minDamage, maxDamage);
+    const remainingHP = player2.changeHP(damage);
+    addLog(generateLog(player1.name, player2.name, damage, remainingHP));
 
-function playerAttack(maxDamage) {
-    if (enemy.isDead() || character.isDead()) return;
-
-    const damage = random(10, maxDamage);
-    const remainingHP = enemy.changeHP(damage);
-    addLog(generateLog(character.name, enemy.name, damage, remainingHP));
-
-    if (enemy.isDead()) {
-        addLog(`💀 ${enemy.name} вибув із бою!`);
-        $btnKick.disabled = true;
-        $btnStrong.disabled = true;
+    if (player2.isDead()) {
+        addLog(`💀 ${player2.name} вибув із бою!`);
         return;
     }
 
     setTimeout(() => {
-        const enemyDamage = random(5, 20);
-        const charHP = character.changeHP(enemyDamage);
-        addLog(generateLog(enemy.name, character.name, enemyDamage, charHP));
+        const attack = player2.attacks[0]; // ворог завжди атакує першим ударом
+        const enemyDamage = random(attack.minDamage, attack.maxDamage);
+        const charHP = player1.changeHP(enemyDamage);
+        addLog(generateLog(player2.name, player1.name, enemyDamage, charHP));
 
-        if (character.isDead()) {
-            addLog(`💀 ${character.name} вибув із бою!`);
-            $btnKick.disabled = true;
-            $btnStrong.disabled = true;
+        if (player1.isDead()) {
+            addLog(`💀 ${player1.name} вибув із бою!`);
         }
     }, 700);
 }
 
-function createClickCounter(button, maxClicks, damage) {
+export function createClickCounter(button, maxClicks, attack, player1, player2) {
     let clicks = 0;
-    button.innerText += ` (${maxClicks})`;
+    const baseText = attack.name;
+
+    button.innerText = `${baseText} (${maxClicks})`;
 
     button.addEventListener('click', () => {
-        if (clicks >= maxClicks) return;
+        if (clicks >= maxClicks || player1.isDead() || player2.isDead()) return;
 
         clicks++;
-        playerAttack(damage);
+        playerAttack(attack.maxDamage, attack.minDamage, player1, player2);
 
         const clicksLeft = maxClicks - clicks;
-        button.innerText = `${button.innerText.split(' (')[0]} (${clicksLeft})`;
+        button.innerText = `${baseText} (${clicksLeft})`;
 
         if (clicksLeft === 0) {
             button.disabled = true;
@@ -84,6 +61,3 @@ function createClickCounter(button, maxClicks, damage) {
         }
     });
 }
-
-createClickCounter($btnKick, 6, 20);
-createClickCounter($btnStrong, 6, 35);
