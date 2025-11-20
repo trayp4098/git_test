@@ -1,4 +1,4 @@
-// обработчик собитий
+// обработчик событий
 document.addEventListener('DOMContentLoaded', function() {
   const btnOpenModal = document.querySelector('#btnOpenModal');
   const modalBlock = document.querySelector('#modalBlock');
@@ -8,8 +8,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const nextButton = document.querySelector('#next');
   const prevButton = document.querySelector('#prev');
 
-
-//обьект вопросов
+  // объект вопросов
   const questions = [
     {
       questions: [
@@ -53,8 +52,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   ];
 
-
-  // обработчик собитий на кнопку открытия модального окна
+  // обработчик открытия
   btnOpenModal.addEventListener('click', () => {
     modalBlock.classList.add('d-block');
     playTest();
@@ -64,22 +62,67 @@ document.addEventListener('DOMContentLoaded', function() {
     modalBlock.classList.remove('d-block');
   });
 
-
   // функция теста
   const playTest = () => {
     let numberQuestion = 0;
 
-    // функція для приховування/показу кнопок
+    // Логика показа кнопок — ТУТ switch/case
     const updateButtons = () => {
-      prevButton.style.display = numberQuestion === 0 ? 'none' : 'block';
-      nextButton.style.display = numberQuestion === questions[0].questions.length - 1
-        ? 'none'
-        : 'block';
+      switch (numberQuestion) {
+        // Перше питання
+        case 0:
+          prevButton.style.display = 'none';
+          nextButton.style.display = 'block';
+          break;
+
+        // Останнє питання (перед фінальною сторінкою)
+        case questions[0].questions.length - 1:
+          prevButton.style.display = 'block';
+          nextButton.style.display = 'block';
+          break;
+
+        // Фінальна сторінка
+        case questions[0].questions.length:
+          prevButton.style.display = 'none';
+          nextButton.style.display = 'none';
+          break;
+
+        // Усі інші кроки
+        default:
+          prevButton.style.display = 'block';
+          nextButton.style.display = 'block';
+          break;
+      }
     };
 
+    // рендер вопроса
     const renderQuestion = (index) => {
+
+      // если закончились
+      if (index === questions[0].questions.length) {
+        questionTitle.textContent = "Тест завершён!";
+        formAnswers.innerHTML = `
+          <div style="text-align:center; width:100%; font-size:22px; margin-top:20px;">
+            Спасибо за пройденный тест!
+          </div>
+        `;
+
+        // кнопки скрываем
+        updateButtons();
+
+        // кнопка SEND
+        const sendBtn = document.createElement('button');
+        sendBtn.textContent = "Send";
+        sendBtn.classList.add("btn", "btn-primary");
+        sendBtn.style.marginTop = "20px";
+        formAnswers.appendChild(sendBtn);
+
+        return;
+      }
+
+      // обычные вопросы
       const current = questions[0].questions[index];
-      questionTitle.textContent = `${current.question}`;
+      questionTitle.textContent = current.question;
       formAnswers.innerHTML = '';
 
       current.answers.forEach((answer, i) => {
@@ -89,20 +132,21 @@ document.addEventListener('DOMContentLoaded', function() {
         answerItem.innerHTML = `
           <input type="${current.type}" id="answerItem${i}" name="answer" class="d-none">
           <label for="answerItem${i}" class="d-flex flex-column justify-content-between">
-            <img class="answerImg" src="${answer.url}" alt="burger">
+            <img class="answerImg" src="${answer.url}" alt="img">
             <span>${answer.title}</span>
           </label>
         `;
         formAnswers.appendChild(answerItem);
       });
 
-      updateButtons(); 
+      updateButtons();
     };
 
+    // старт
     renderQuestion(numberQuestion);
 
     nextButton.onclick = () => {
-      if (numberQuestion < questions[0].questions.length - 1) {
+      if (numberQuestion <= questions[0].questions.length) {
         numberQuestion++;
         renderQuestion(numberQuestion);
       }
