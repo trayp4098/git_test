@@ -1,3 +1,4 @@
+// обработчик собитий
 document.addEventListener('DOMContentLoaded', function() {
   const btnOpenModal = document.querySelector('#btnOpenModal');
   const modalBlock = document.querySelector('#modalBlock');
@@ -7,6 +8,8 @@ document.addEventListener('DOMContentLoaded', function() {
   const nextButton = document.querySelector('#next');
   const prevButton = document.querySelector('#prev');
 
+
+//обьект вопросов
   const questions = [
     {
       questions: [
@@ -50,6 +53,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   ];
 
+
+  // обработчик собитий на кнопку открытия модального окна
   btnOpenModal.addEventListener('click', () => {
     modalBlock.classList.add('d-block');
     playTest();
@@ -59,10 +64,12 @@ document.addEventListener('DOMContentLoaded', function() {
     modalBlock.classList.remove('d-block');
   });
 
+
+  // функция теста
   const playTest = () => {
     let numberQuestion = 0;
 
-    // 🔥 ДОДАНО: функція для приховування/показу кнопок
+    // функція для приховування/показу кнопок
     const updateButtons = () => {
       prevButton.style.display = numberQuestion === 0 ? 'none' : 'block';
       nextButton.style.display = numberQuestion === questions[0].questions.length - 1
@@ -89,7 +96,7 @@ document.addEventListener('DOMContentLoaded', function() {
         formAnswers.appendChild(answerItem);
       });
 
-      updateButtons(); // 🔥 ДОДАНО
+      updateButtons(); 
     };
 
     renderQuestion(numberQuestion);
