@@ -1,5 +1,28 @@
-// обработчик событий
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-analytics.js";
+import { getDatabase, ref, push, set } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
+
+// Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyBk4a0zeWvfjnQkQcgh7rJElSDCz1V9yy4",
+  authDomain: "quiztest-5088b.firebaseapp.com",
+  databaseURL: "https://quiztest-5088b-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "quiztest-5088b",
+  storageBucket: "quiztest-5088b.firebasestorage.app",
+  messagingSenderId: "405246599500",
+  appId: "1:405246599500:web:ffd0e884d2d8aed1922fe9",
+  measurementId: "G-YN00QQ190M"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+const db = getDatabase(app); // <-- тепер доступно
+
+
+// Решта коду без змін
 document.addEventListener('DOMContentLoaded', function() {
+
   const btnOpenModal = document.querySelector('#btnOpenModal');
   const modalBlock = document.querySelector('#modalBlock');
   const closeModal = document.querySelector('#closeModal');
@@ -7,8 +30,10 @@ document.addEventListener('DOMContentLoaded', function() {
   const formAnswers = document.querySelector('#formAnswers');
   const nextButton = document.querySelector('#next');
   const prevButton = document.querySelector('#prev');
+  const sendButton = document.querySelector('#send');
 
-  // объект вопросов
+  let userAnswers = [];
+
   const questions = [
     {
       questions: [
@@ -52,7 +77,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   ];
 
-  // обработчик открытия
   btnOpenModal.addEventListener('click', () => {
     modalBlock.classList.add('d-block');
     playTest();
@@ -62,101 +86,92 @@ document.addEventListener('DOMContentLoaded', function() {
     modalBlock.classList.remove('d-block');
   });
 
-  // функция теста
   const playTest = () => {
     let numberQuestion = 0;
+    userAnswers = [];
+    sendButton.classList.add("d-none");
 
-    // Логика показа кнопок — ТУТ switch/case
     const updateButtons = () => {
-      switch (numberQuestion) {
-        // Перше питання
-        case 0:
-          prevButton.style.display = 'none';
-          nextButton.style.display = 'block';
-          break;
+      const last = questions[0].questions.length - 1;
 
-        // Останнє питання (перед фінальною сторінкою)
-        case questions[0].questions.length - 1:
-          prevButton.style.display = 'block';
-          nextButton.style.display = 'block';
-          break;
-
-        // Фінальна сторінка
-        case questions[0].questions.length:
-          prevButton.style.display = 'none';
-          nextButton.style.display = 'none';
-          break;
-
-        // Усі інші кроки
-        default:
-          prevButton.style.display = 'block';
-          nextButton.style.display = 'block';
-          break;
+      if(numberQuestion === 0){
+        prevButton.classList.add("d-none");
+        nextButton.classList.remove("d-none");
+        sendButton.classList.add("d-none");
+      }
+      else if(numberQuestion === last){
+        prevButton.classList.remove("d-none");
+        nextButton.classList.add("d-none");
+        sendButton.classList.remove("d-none");
+      }
+      else{
+        prevButton.classList.remove("d-none");
+        nextButton.classList.remove("d-none");
+        sendButton.classList.add("d-none");
       }
     };
 
-    // рендер вопроса
-    const renderQuestion = (index) => {
+    const saveAnswer = (i) => {
+      const current = questions[0].questions[i];
+      const checked = [...formAnswers.querySelectorAll("input:checked")].map(el => {
+        const index = parseInt(el.id.replace("answerItem",""));
+        return current.answers[index].title;
+      });
+      userAnswers[i] = (current.type === "radio") ? checked[0] : checked;
+    };
 
-      // если закончились
-      if (index === questions[0].questions.length) {
-        questionTitle.textContent = "Тест завершён!";
-        formAnswers.innerHTML = `
-          <div style="text-align:center; width:100%; font-size:22px; margin-top:20px;">
-            Спасибо за пройденный тест!
-          </div>
-        `;
-
-        // кнопки скрываем
+    const renderQuestion = (i) => {
+      if(i === questions[0].questions.length){
+        questionTitle.textContent = "Тест завершено!";
+        formAnswers.innerHTML = "<h3 class='text-center'>Дякуємо за проходження!</h3>";
         updateButtons();
-
-        // кнопка SEND
-        const sendBtn = document.createElement('button');
-        sendBtn.textContent = "Send";
-        sendBtn.classList.add("btn", "btn-primary");
-        sendBtn.style.marginTop = "20px";
-        formAnswers.appendChild(sendBtn);
-
         return;
       }
 
-      // обычные вопросы
-      const current = questions[0].questions[index];
-      questionTitle.textContent = current.question;
-      formAnswers.innerHTML = '';
+      const q = questions[0].questions[i];
+      questionTitle.textContent = q.question;
+      formAnswers.innerHTML = "";
 
-      current.answers.forEach((answer, i) => {
-        const answerItem = document.createElement('div');
-        answerItem.classList.add('answers-item', 'd-flex', 'flex-column');
-
-        answerItem.innerHTML = `
-          <input type="${current.type}" id="answerItem${i}" name="answer" class="d-none">
-          <label for="answerItem${i}" class="d-flex flex-column justify-content-between">
-            <img class="answerImg" src="${answer.url}" alt="img">
-            <span>${answer.title}</span>
-          </label>
-        `;
-        formAnswers.appendChild(answerItem);
+      q.answers.forEach((ans,j) => {
+        formAnswers.innerHTML += `
+          <div class="answers-item d-flex flex-column p-2">
+            <input type="${q.type}" id="answerItem${j}" name="${q.type + i}" class="d-none">
+            <label for="answerItem${j}" class="d-flex flex-column align-items-center">
+              <img class="answerImg" src="${ans.url}">
+              <span>${ans.title}</span>
+            </label>
+          </div>`;
       });
 
       updateButtons();
     };
 
-    // старт
     renderQuestion(numberQuestion);
 
     nextButton.onclick = () => {
-      if (numberQuestion <= questions[0].questions.length) {
-        numberQuestion++;
-        renderQuestion(numberQuestion);
-      }
+      saveAnswer(numberQuestion);
+      numberQuestion++;
+      renderQuestion(numberQuestion);
     };
 
     prevButton.onclick = () => {
-      if (numberQuestion > 0) {
-        numberQuestion--;
-        renderQuestion(numberQuestion);
-      }
+      numberQuestion--;
+      renderQuestion(numberQuestion);
+    };
+
+    sendButton.onclick = () => {
+      saveAnswer(numberQuestion);  // зберігаємо останню відповідь
+
+      // --- Запис у Firebase ---
+      const resultRef = push(ref(db, "quizResults")); // новий запис
+      set(resultRef, {
+        timestamp: Date.now(),
+        answers: userAnswers
+      });
+
+      alert("Результат збережено у Firebase!");
+      console.log("Відповіді користувача:", userAnswers);
+      modalBlock.classList.remove('d-block'); // закриваємо модалку
     };
   };
 });
